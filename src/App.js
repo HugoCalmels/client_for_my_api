@@ -1,5 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Axios from "axios";
+import Cookies from "js-cookie";
+import { BrowserRouter as Router, Link, Route, Switch } from "react-router-dom";
+import ProtectedRoute from './components/ProtectedRoute';
+import Profile from "./pages/Profile";
+import Auth from './components/Auth';
 
 const App = () => {
 
@@ -9,7 +14,7 @@ const App = () => {
   const [emailLogin, setEmailLogin] = useState("");
   const [passwordLogin, setPasswordLogin] = useState("");
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
 
 
   const register = () => {
@@ -22,6 +27,19 @@ const App = () => {
       console.log(response);
     });
   };
+
+  function checkAuth() {
+    if (localStorage.getItem("token") !== undefined) {
+     return setIsAuth(true)
+    } else {
+      return setIsAuth(false)
+    }
+  }
+
+  useEffect(() => {
+    checkAuth()
+  }, []);
+ 
 
 
   const login = () => {
@@ -41,7 +59,7 @@ const App = () => {
     if (res.ok) {
       console.log(res.headers.get("Authorization"));
       localStorage.setItem("token", res.headers.get("Authorization"));
-      setIsAuthenticated(true)
+      setIsAuth(true)
       return res.json();
     } else {
       return res.text().then((text) => Promise.reject(text));
@@ -62,7 +80,7 @@ const App = () => {
         .then((res) => {
           if (res.ok) {
             return res.json();
-          } else if (res.status == "401") {
+          } else if (res.status === "401") {
             throw new Error("Unauthorized Request. Must be signed in.");
           }
         })
@@ -80,7 +98,7 @@ const App = () => {
       })
       .then((res) => {
         if (res.ok) {
-          setIsAuthenticated(false)
+          setIsAuth(false)
           return res.json();
         } else {
           return res.json().then((json) => Promise.reject(json));
@@ -92,14 +110,23 @@ const App = () => {
       .catch((err) => console.error(err));
     };
 
+  
+  const testBearer = () => {
+    let cookie = localStorage.getItem("token");
+    console.log(cookie)
+  }
 
   return (
+    <Router>
+    
     <div className="app">
-
-{isAuthenticated ?
+    <Auth />
+{isAuth ?
   (
-
+    <div>
+    <Link to="/profile">Go to profile</Link>
     <button onClick={logout} > logout </button>
+    </div>
   )
   :
   (
@@ -150,8 +177,10 @@ const App = () => {
           <button onClick={login} > Login </button>
 
         </div>
+        
       </div>
 
+      
   )
 }
     
@@ -160,8 +189,23 @@ const App = () => {
     <br />
 
     <button onClick={getArticles} >getArticles </button>
-
+    <button onClick={testBearer} >testCookie </button>
+    <button onClick={logout} > logout </button>
+    
    </div>
+
+
+ 
+      <ProtectedRoute
+        exact
+        path="/profile"
+        component={Profile}
+        isAuth={isAuth}
+      />
+   
+
+
+   </Router>
   )};
 
 export default App;
